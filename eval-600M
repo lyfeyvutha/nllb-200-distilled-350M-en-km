@@ -1,0 +1,355 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "c8774a07",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Thu May 22 09:06:18 2025       \n",
+      "+-----------------------------------------------------------------------------------------+\n",
+      "| NVIDIA-SMI 570.133.20             Driver Version: 570.133.20     CUDA Version: 12.8     |\n",
+      "|-----------------------------------------+------------------------+----------------------+\n",
+      "| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n",
+      "| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n",
+      "|                                         |                        |               MIG M. |\n",
+      "|=========================================+========================+======================|\n",
+      "|   0  NVIDIA A100-SXM4-80GB          Off |   00000000:00:10.0 Off |                    0 |\n",
+      "| N/A   31C    P0             48W /  400W |   66418MiB /  81920MiB |      0%      Default |\n",
+      "|                                         |                        |             Disabled |\n",
+      "+-----------------------------------------+------------------------+----------------------+\n",
+      "                                                                                         \n",
+      "+-----------------------------------------------------------------------------------------+\n",
+      "| Processes:                                                                              |\n",
+      "|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n",
+      "|        ID   ID                                                               Usage      |\n",
+      "|=========================================================================================|\n",
+      "|    0   N/A  N/A            1332      G   /usr/lib/xorg/Xorg                        4MiB |\n",
+      "|    0   N/A  N/A           30121      C   /home/ubuntu/TrOCR/bin/python         62514MiB |\n",
+      "|    0   N/A  N/A           33857      C   /home/ubuntu/TrOCR/bin/python          3876MiB |\n",
+      "+-----------------------------------------------------------------------------------------+\n"
+     ]
+    }
+   ],
+   "source": [
+    "!nvidia-smi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "6fccbfdc",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "import logging\n",
+    "\n",
+    "# Configure logging\n",
+    "logging.basicConfig(level=logging.INFO)\n",
+    "logger = logging.getLogger(__name__)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "6087913c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "!pip install -q transformers datasets evaluate accelerate bert-score"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "4133fd87",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.\n",
+      "WARNING:huggingface_hub._login:Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.\n",
+      "INFO:__main__:Successfully authenticated with Hugging Face.\n"
+     ]
+    }
+   ],
+   "source": [
+    "from dotenv import load_dotenv\n",
+    "from huggingface_hub import login\n",
+    "\n",
+    "load_dotenv() \n",
+    "hf_token = os.environ.get(\"HF_TOKEN\")\n",
+    "if hf_token:\n",
+    "    login(token=hf_token)\n",
+    "    logger.info(\"Successfully authenticated with Hugging Face.\")\n",
+    "else:\n",
+    "    logger.warning(\"HF_TOKEN not found in environment variables. Some operations may fail.\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "f1a1d84e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "INFO:datasets:PyTorch version 2.4.1+cu121 available.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import torch\n",
+    "from datasets import load_dataset, Dataset\n",
+    "from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, GenerationConfig\n",
+    "import evaluate\n",
+    "from tqdm import tqdm\n",
+    "\n",
+    "CONFIG = {\n",
+    "    \"max_length\": 128,\n",
+    "    \"source_lang\": \"eng_Latn\",\n",
+    "    \"target_lang\": \"khm_Khmr\",\n",
+    "    \"batch_size\": 32,\n",
+    "    \"model_name\": \"facebook/nllb-200-distilled-600M\",\n",
+    "    \"tokenizer_name\": \"facebook/nllb-200-distilled-600M\"\n",
+    "}\n",
+    "\n",
+    "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "e5604fbb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "alt_dataset = load_dataset(\"mutiyama/alt\")\n",
+    "eval_data = []\n",
+    "for split_name in alt_dataset.keys():\n",
+    "    for item in alt_dataset[split_name]:\n",
+    "        translations = item.get(\"translation\", {})\n",
+    "        if \"en\" in translations and \"khm\" in translations:\n",
+    "            eval_data.append({\n",
+    "                'eng': translations[\"en\"],\n",
+    "                'khm': translations[\"khm\"]\n",
+    "            })\n",
+    "eval_dataset = Dataset.from_list(eval_data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "938907b9",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/home/ubuntu/TrOCR/lib/python3.8/site-packages/huggingface_hub/file_download.py:797: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.\n",
+      "  warnings.warn(\n"
+     ]
+    }
+   ],
+   "source": [
+    "model = AutoModelForSeq2SeqLM.from_pretrained(CONFIG[\"model_name\"])\n",
+    "tokenizer = AutoTokenizer.from_pretrained(\n",
+    "    CONFIG[\"tokenizer_name\"],\n",
+    "    src_lang=CONFIG[\"source_lang\"],\n",
+    "    tgt_lang=CONFIG[\"target_lang\"]\n",
+    ")\n",
+    "model.to(device)\n",
+    "khm_token_id = tokenizer.convert_tokens_to_ids(CONFIG[\"target_lang\"])\n",
+    "generation_config = GenerationConfig(\n",
+    "    max_length=CONFIG[\"max_length\"],\n",
+    "    forced_bos_token_id=khm_token_id\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "8818ea6b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "english_sentences = [item['eng'] for item in eval_data]\n",
+    "khmer_references = [item['khm'] for item in eval_data]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "9540e6ac",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def translate_batch(sentences, model, tokenizer, generation_config, device, batch_size=32):\n",
+    "    \"\"\"Translate sentences in batches for better performance.\"\"\"\n",
+    "    all_translations = []\n",
+    "    for i in tqdm(range(0, len(sentences), batch_size), desc=\"Translating\"):\n",
+    "        batch = sentences[i:i+batch_size]\n",
+    "        valid_indices, valid_sentences = [], []\n",
+    "        for idx, sentence in enumerate(batch):\n",
+    "            if sentence and sentence.strip():\n",
+    "                valid_indices.append(idx)\n",
+    "                valid_sentences.append(sentence)\n",
+    "        batch_translations = [\"\"] * len(batch)\n",
+    "        if valid_sentences:\n",
+    "            try:\n",
+    "                inputs = tokenizer(valid_sentences, return_tensors=\"pt\", padding=True, truncation=True)\n",
+    "                inputs = {k: v.to(device) for k, v in inputs.items()}\n",
+    "                with torch.no_grad():\n",
+    "                    output_ids = model.generate(**inputs, generation_config=generation_config)\n",
+    "                for idx, output_id in enumerate(output_ids):\n",
+    "                    translation = tokenizer.decode(output_id[1:], skip_special_tokens=True)\n",
+    "                    batch_translations[valid_indices[idx]] = translation\n",
+    "            except Exception as e:\n",
+    "                logger.error(f\"Error in batch {i//batch_size}: {e}\")\n",
+    "        all_translations.extend(batch_translations)\n",
+    "    return all_translations\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "7fcf94a3",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "INFO:__main__:Starting batch translation...\n",
+      "Translating: 100%|██████████| 629/629 [12:11<00:00,  1.16s/it]\n"
+     ]
+    }
+   ],
+   "source": [
+    "logger.info(\"Starting batch translation...\")\n",
+    "predictions = translate_batch(\n",
+    "    english_sentences,\n",
+    "    model,\n",
+    "    tokenizer,\n",
+    "    generation_config,\n",
+    "    device,\n",
+    "    batch_size=CONFIG[\"batch_size\"]\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "58a75653",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "khmer_references_clean = [ref if ref is not None else \"\" for ref in khmer_references]\n",
+    "predictions_clean = [pred if pred is not None else \"\" for pred in predictions]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "5f798b22",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "INFO:__main__:Calculating chrF score...\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "chrF score: 43.8828\n"
+     ]
+    }
+   ],
+   "source": [
+    "logger.info(\"Calculating chrF score...\")\n",
+    "chrf_metric = evaluate.load(\"chrf\")\n",
+    "chrf_result = chrf_metric.compute(\n",
+    "    predictions=predictions_clean,\n",
+    "    references=khmer_references_clean\n",
+    ")\n",
+    "print(f\"chrF score: {chrf_result['score']:.4f}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "27c8a223",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "INFO:__main__:Calculating BERTScore...\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "BERTScore F1: 0.8573\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Warning: Empty candidate sentence detected; setting raw BERTscores to 0.\n",
+      "Warning: Empty reference sentence detected; setting raw BERTScores to 0.\n"
+     ]
+    }
+   ],
+   "source": [
+    "logger.info(\"Calculating BERTScore...\")\n",
+    "from bert_score import score\n",
+    "P, R, F1 = score(\n",
+    "    predictions_clean,\n",
+    "    khmer_references_clean,\n",
+    "    lang=\"other\",\n",
+    "    model_type=\"bert-base-multilingual-cased\"\n",
+    ")\n",
+    "print(f\"BERTScore F1: {F1.mean().item():.4f}\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python (venvname)",
+   "language": "python",
+   "name": "venvname"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
