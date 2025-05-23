@@ -324,7 +324,6 @@ This work builds upon Meta's NLLB-200 models and uses the Asian Language Treeban
 
 ## Citation
 
-### This Work
 If you use this work in your research, please cite:
 
 ```bibtex
@@ -335,6 +334,8 @@ If you use this work in your research, please cite:
   url={https://github.com/lyfeyvutha/nllb-200-distilled-350M-en-km}
 }
 ```
+<details>
+<summary><strong>Others</strong></summary>
 
 ### Asian Language Treebank (ALT)
 My evaluation uses the ALT corpus. Please cite the original works:
@@ -382,6 +383,7 @@ Methodological inspiration from:
   note={Methodological inspiration for English-Khmer adaptation}
 }
 ```
+</details>
 
 ---
 
