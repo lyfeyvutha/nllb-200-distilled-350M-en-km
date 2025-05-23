@@ -301,7 +301,7 @@ export WANDB_API_KEY="your_wandb_key"
 export TRAINING_DATA_PATH="path/to/your/data.json"
 
 # Run training
-jupyter notebook training.ipynb
+jupyter notebook train.ipynb
 ```
 
 ## Bugs or Questions?
