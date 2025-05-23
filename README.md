@@ -18,7 +18,9 @@ A compact English-to-Khmer neural machine translation model based on knowledge d
 
 ## Overview
 
-I propose a knowledge distillation framework that addresses the computational efficiency challenges of large-scale neural machine translation models while preserving translation quality. My approach reduces the parameter count of the NLLB-200 model from 600M to 350M parameters through `layer pruning` and `knowledge distillation`, specifically optimized for English-to-Khmer translation. The following figure demonstrates a 42% parameter reduction while maintaining competitive translation performance, with the distilled model achieving a chrF score of 38.83 compared to the 600M baseline's 43.88.
+I propose a knowledge distillation framework that addresses the computational efficiency challenges of large-scale neural machine translation models while preserving translation quality. My approach reduces the parameter count of the NLLB-200 model from 600M to 350M parameters through `layer pruning` and `knowledge distillation`, specifically optimized for English-to-Khmer translation. 
+
+The following figure demonstrates a 42% parameter reduction while maintaining competitive translation performance, with the distilled model achieving a chrF score of 38.83 compared to the 600M baseline's 43.88.
 
 ![](figure/model.png)
 
