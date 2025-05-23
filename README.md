@@ -73,8 +73,8 @@ print(translation)
 
 | Model Name | Purpose | Training Epochs | Status | HuggingFace Link |
 |------------|---------|-----------------|--------|------------------|
-| `nllb_350M_en_km_v1` | Demonstration | 1 epoch | ✅ Available | [lyfeyvutha/nllb_350M_en_km_v1](https://huggingface.co/lyfeyvutha/nllb_350M_en_km_v1) |
-| `nllb_350M_en_km_v10` | Production | 10 epochs | ✅ Available | [lyfeyvutha/nllb_350M_en_km_v10](https://huggingface.co/lyfeyvutha/nllb_350M_en_km_v10) |
+| `nllb_350M_en_km_v1` | Proof of Concept | 1 epoch | Available | [lyfeyvutha/nllb_350M_en_km_v1](https://huggingface.co/lyfeyvutha/nllb_350M_en_km_v1) |
+| `nllb_350M_en_km_v10` | Research Evaluation | 10 epochs | Available | [lyfeyvutha/nllb_350M_en_km_v10](https://huggingface.co/lyfeyvutha/nllb_350M_en_km_v10) |
 
 ## Use NLLB-EN-KM with Huggingface
 
