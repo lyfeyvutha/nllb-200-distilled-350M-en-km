@@ -13,7 +13,6 @@ A compact English-to-Khmer neural machine translation model based on knowledge d
 - [Evaluation](#evaluation)
 - [Training](#training)
 - [Bugs or Questions?](#bugs-or-questions)
-- [Acknowledgments](#acknowledgments)
 - [Citation](#citation)
 
 ## Overview
@@ -317,10 +316,6 @@ If you encounter any issues or have questions:
 - **Memory Issues**: Reduce batch size or use gradient accumulation
 - **CUDA Errors**: Ensure CUDA 12.8+ compatibility
 - **Data Format**: Verify JSON structure matches expected format
-
-## Acknowledgments
-
-This work builds upon Meta's NLLB-200 models and uses the Asian Language Treebank (ALT) corpus for evaluation. Special thanks to [newfull5](https://github.com/newfull5) for the methodological inspiration and ALT project contributors for providing high-quality English-Khmer parallel data.
 
 ## Citation
 
