@@ -21,7 +21,7 @@ I propose a knowledge distillation framework that addresses the computational ef
 
 The following figure demonstrates a 42% parameter reduction while maintaining competitive translation performance, with the distilled model achieving a chrF score of 38.83 compared to the 600M baseline's 43.88.
 
-![](figure/models.png)
+![](figure/model.png)
 
 ### Key Features
 
@@ -290,8 +290,6 @@ Student Model (600M → 350M)
 |10	| 0.413200 | 0.531947 |
 
 *Training performed on 316,110 English-Khmer sentence pairs*
-
-![](figure/training.png)
 
 ### Starting Training
 
